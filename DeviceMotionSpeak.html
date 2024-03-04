@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    canvas {
+      /*width: 100%;*/
+      /*height: 100%;*/
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<script>
+
+  var canvas = document.getElementById("canvas");
+  var ctx = canvas.getContext("2d");
+
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  var waveCount = 15;
+
+  var waveGap = canvas.height / waveCount;
+
+
+  var waveWidth = [10, 15, 20];
+
+  var waveLength = 0.02;
+
+  var waveAmplitude = 60;
+
+  var waveSpeed = 0.02;
+
+  var waveOffset = 0;
+
+  var waveColor = "black";
+
+  // add angle to the waves
+  var angle = 45;
+  var angleRad = angle * Math.PI / 180;
+
+
+  function drawWaves() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (var i = 0; i < waveCount; i++) {
+
+      var y = i * waveGap + waveGap / 2;
+
+
+      ctx.beginPath();
+
+      ctx.moveTo(0, y);
+
+      for (var x = 0; x <= canvas.width; x++) {
+        var yOffset = Math.sin(x * waveLength + waveOffset) * waveAmplitude * Math.sin(angleRad);
+
+        ctx.lineTo(x, y + yOffset);
+      }
+
+      ctx.lineTo(canvas.width, y);
+
+      ctx.lineWidth = waveWidth[i];
+      ctx.strokeStyle = waveColor;
+
+      ctx.stroke();
+    }
+  }
+
+  function speakText(amplitude) {
+    var message = `The waves are ${amplitude > 50 ? "high" : "low"}!`;
+    var speech = new SpeechSynthesisUtterance(message);
+    window.speechSynthesis.speak(speech);
+  }
+
+
+  function update() {
+
+    waveOffset += waveSpeed;
+
+    drawWaves();
+    requestAnimationFrame(update);
+
+  }
+
+  var hueOffset = 0;
+
+  function handleMotion(event) {
+    var x = event.accelerationIncludingGravity.x;
+    var y = event.accelerationIncludingGravity.y;
+
+    var motionFactor = 15;
+
+    waveAmplitude += y / motionFactor;
+    waveLength += x / motionFactor;
+
+    waveAmplitude = Math.max(Math.min(waveAmplitude, 100), 20);
+    waveLength = Math.max(Math.min(waveLength, 0.05), 0.01);
+
+    // Adjusting waveColor based on device motion
+    hueOffset += (x + y) / (motionFactor * 10);
+
+    hueOffset = (hueOffset + 360) % 360;
+
+    waveColor = `hsl(${hueOffset}, 50%, 50%)`;
+
+    // Speak a msg when shaken
+    speakText(waveAmplitude);
+
+
+  }
+
+
+
+  // Request permission for devicemotion (for iPhone)
+  if (typeof DeviceMotionEvent.requestPermission === 'function') {
+    DeviceMotionEvent.requestPermission().then(permissionState => {
+      if (permissionState === 'granted') {
+        window.addEventListener('devicemotion', handleMotion);
+      }
+    })
+            .catch(console.error);
+  } else {
+    window.addEventListener('devicemotion', handleMotion);
+  }
+
+
+  if (typeof SpeechSynthesis !== 'undefined' && SpeechSynthesis.speak) {
+  } else {
+  }
+
+
+
+  update();
+
+  window.addEventListener('resize', function () {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    drawWaves();
+  });
+
+</script>
+
+</body>
+</html>
